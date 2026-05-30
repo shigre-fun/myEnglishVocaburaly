@@ -21,16 +21,40 @@
             border-radius: 12px;
             box-shadow: 0 4px 6px rgba(0,0,0,0.1);
         }
-        h1 { text-align: center; color: #4a5568; }
+        h1 { text-align: center; color: #4a5568; margin-bottom: 25px; }
         .nav-buttons { display: flex; gap: 10px; margin-bottom: 20px; }
         .btn {
             flex: 1; padding: 12px; border: none; border-radius: 8px;
             font-size: 16px; font-weight: bold; cursor: pointer;
             transition: 0.2s;
         }
-        .btn-main { background-color: #3182ce; color: white; }
-        .btn-sub { background-color: #e2e8f0; color: #4a5568; }
+        /* ボタンの色をクラスで管理 */
+        .btn-blue { background-color: #3182ce; color: white; }
+        .btn-gray { background-color: #e2e8f0; color: #4a5568; }
         .btn:hover { opacity: 0.9; }
+
+        /* 【新機能】グループ選択画面のスタイル */
+        .group-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .group-btn {
+            background-color: white;
+            border: 2px solid #e2e8f0;
+            padding: 18px;
+            border-radius: 10px;
+            font-size: 18px;
+            font-weight: bold;
+            color: #2d3748;
+            cursor: pointer;
+            text-align: left;
+            transition: 0.2s;
+        }
+        .group-btn:hover {
+            border-color: #3182ce;
+            background-color: #f7fafc;
+        }
 
         /* 単語帳画面のスタイル */
         .word-list {
@@ -38,16 +62,20 @@
             overflow-y: auto;
             border: 1px solid #e2e8f0;
             border-radius: 8px;
+            margin-bottom: 20px;
         }
         .word-row {
             display: flex;
-            justify-content: space-between;
+            align-items: center;
             padding: 15px 20px;
             border-bottom: 1px solid #edf2f7;
         }
         .word-row:last-child { border-bottom: none; }
-        .english { font-weight: bold; color: #2b6cb0; width: 45%; }
-        .japanese { color: #4a5568; width: 45%; text-align: right; }
+        
+        /* 列の幅を調整 */
+        .word-no { width: 20%; color: #a0aec0; font-size: 14px; font-family: monospace; }
+        .english { width: 40%; font-weight: bold; color: #2b6cb0; }
+        .japanese { width: 40%; color: #4a5568; text-align: right; }
 
         /* テスト画面のスタイル */
         .hidden { display: none !important; }
@@ -63,125 +91,209 @@
 <body>
 
 <div class="container">
-    <h1>📝 My単語帳</h1>
+    <h1 id="app-title">📝 My単語帳</h1>
     
-    <div class="nav-buttons">
-        <button class="btn btn-main" onclick="showSection('list-section')">単語帳を見る</button>
-        <button class="btn btn-sub" onclick="startTest()">テストに挑戦</button>
+    <div id="group-section">
+        <div class="group-list">
+            <button class="group-btn" onclick="selectGroup(1, 'No.0001 ~ 0050')">📁 No.0001 ~ 0050</button>
+            <button class="group-btn" onclick="selectGroup(2, 'No.0051 ~ 0100')">📁 No.0051 ~ 0100</button>
+            <button class="group-btn" onclick="selectGroup(3, 'No.0101 ~ 0150')">📁 No.0101 ~ 0150</button>
+        </div>
     </div>
 
-    <div id="list-section">
-        <div class="word-list" id="word-list-container">
+    <div id="content-section" class="hidden">
+        <div class="nav-buttons">
+            <button id="nav-list-btn" class="btn btn-blue" onclick="switchToMode('list')">単語帳を見る</button>
+            <button id="nav-test-btn" class="btn btn-gray" onclick="switchToMode('test')">テストに挑戦</button>
+        </div>
+
+        <div id="list-section">
+            <div class="word-list" id="word-list-container">
+                </div>
+            <button class="btn btn-gray" style="width: 100%;" onclick="backToGroups()">グループ一覧に戻る</button>
+        </div>
+
+        <div id="test-section" class="hidden">
+            <div class="test-box">
+                <div id="test-counter" class="test-counter">第 1 問 / 10問中</div>
+                <div id="test-english" class="test-word">apple</div>
+                <div id="test-japanese" class="answer-box"></div>
+                
+                <button id="action-btn" class="btn btn-blue" style="width: 80%; margin-bottom: 10px;" onclick="handleTestAction()">答えを見る</button>
+                <button class="btn btn-gray" style="width: 80%;" onclick="backToGroups()">テストを終了して戻る</button>
             </div>
-    </div>
-
-    <div id="test-section" class="hidden">
-        <div class="test-box">
-            <div id="test-counter" class="test-counter">第 1 問 / 10問中</div>
-            <div id="test-english" class="test-word">apple</div>
-            <div id="test-japanese" class="answer-box"></div>
-            
-            <button id="action-btn" class="btn btn-main" style="width: 80%; margin-bottom: 10px;" onclick="handleTestAction()">答えを見る</button>
-            <button class="btn btn-sub" style="width: 80%;" onclick="showSection('list-section')">テストを中断</button>
         </div>
     </div>
 </div>
 
 <script>
-    // 💡 ここに自作の英単語リストを打ち込みます（サンプルとして12個入れています）
-    // 将来的には50個、100個と増やしていけます
-    const wordGroup1 = [
-        { en: "apple", ja: "りんご" },
-        { en: "book", ja: "本" },
-        { en: "cat", ja: "猫" },
-        { en: "dog", ja: "犬" },
-        { en: "elephant", ja: "ゾウ" },
-        { en: "flower", ja: "花" },
-        { en: "guitar", ja: "ギター" },
-        { en: "house", ja: "家" },
-        { en: "ice", ja: "氷" },
-        { en: "juice", ja: "ジュース" },
-        { en: "knife", ja: "ナイフ" },
-        { en: "lemon", ja: "レモン" }
-        // 50個までここにカンマ（,）区切りで追加していけます
-    ];
+    // 💡 単語データ（グループごとに分けて管理できるようにしました）
+    // 開始番号（startNo）を指定することで、No.0001、No.0051 などが自動で計算されます。
+    const allGroups = {
+        1: {
+            startNo: 1,
+            words: [
+                { en: "apple", ja: "りんご" }, { en: "book", ja: "本" }, { en: "cat", ja: "猫" },
+                { en: "dog", ja: "犬" }, { en: "elephant", ja: "ゾウ" }, { en: "flower", ja: "花" },
+                { en: "guitar", ja: "ギター" }, { en: "house", ja: "家" }, { en: "ice", ja: "氷" },
+                { en: "juice", ja: "ジュース" }, { en: "knife", ja: "ナイフ" }, { en: "lemon", ja: "レモン" }
+                // 後から50個まで自由に追加してください
+            ]
+        },
+        2: {
+            startNo: 51,
+            words: [
+                { en: "mountain", ja: "山" }, { en: "river", ja: "川" }, { en: "ocean", ja: "海" },
+                { en: "sky", ja: "空" }, { en: "sun", ja: "太陽" }, { en: "moon", ja: "月" }
+            ]
+        },
+        3: {
+            startNo: 101,
+            words: [
+                { en: "happy", ja: "幸せな" }, { en: "sad", ja: "悲しい" }, { en: "angry", ja: "怒った" }
+            ]
+        }
+    };
 
-    // テストの進行状態を管理する変数
+    // 現在選択されているデータ情報
+    let currentGroupData = null;
+    let currentMode = 'list'; // 'list' または 'test'
+
+    // テスト用の変数
     let testWords = [];
     let currentQuestionIndex = 0;
     let isShowingAnswer = false;
 
-    // 起動時に単語帳を生成
-    function initApp() {
+    // 1. グループが選択された時の処理
+    function selectGroup(groupId, groupTitle) {
+        currentGroupData = allGroups[groupId];
+        
+        if (!currentGroupData || currentGroupData.words.length === 0) {
+            alert("このグループにはまだ単語が登録されていません。");
+            return;
+        }
+
+        // タイトルをグループ名に変更
+        document.getElementById('app-title').innerText = `📝 ${groupTitle}`;
+        
+        // 画面の表示切り替え
+        document.getElementById('group-section').classList.add('hidden');
+        document.getElementById('content-section').classList.remove('hidden');
+        
+        // 最初は単語帳モードを表示
+        switchToMode('list');
+    }
+
+    // 2. モード切り替え（単語帳 ⇄ テスト）とボタン色変更のコントロール
+    function switchToMode(mode) {
+        currentMode = mode;
+        const listBtn = document.getElementById('nav-list-btn');
+        const testBtn = document.getElementById('nav-test-btn');
+
+        if (mode === 'list') {
+            // ボタンの色を変更
+            listBtn.className = "btn btn-blue";
+            testBtn.className = "btn btn-gray";
+            
+            // セクションの表示切り替え
+            document.getElementById('list-section').classList.remove('hidden');
+            document.getElementById('test-section').classList.add('hidden');
+            
+            // 単語帳の一覧を生成
+            renderWordList();
+        } else if (mode === 'test') {
+            // ボタンの色を変更
+            listBtn.className = "btn btn-gray";
+            testBtn.className = "btn btn-blue";
+            
+            // セクションの表示切り替え
+            document.getElementById('list-section').classList.add('hidden');
+            document.getElementById('test-section').classList.remove('hidden');
+            
+            // テスト開始
+            startTest();
+        }
+    }
+
+    // 3. 単語帳の一覧表示（単語番号の自動生成付き）
+    function renderWordList() {
         const container = document.getElementById('word-list-container');
         container.innerHTML = ''; // 初期化
         
-        wordGroup1.forEach(word => {
+        const startNo = currentGroupData.startNo;
+        
+        currentGroupData.words.forEach((word, index) => {
+            // 4桁の番号を生成（例: 1 -> 0001, 55 -> 0055）
+            const currentNo = String(startNo + index).padStart(4, '0');
+            
             const row = document.createElement('div');
             row.className = 'word-row';
-            row.innerHTML = `<span class="english">${word.en}</span><span class="japanese">${word.ja}</span>`;
+            row.innerHTML = `
+                <span class="word-no">No.${currentNo}</span>
+                <span class="english">${word.en}</span>
+                <span class="japanese">${word.ja}</span>
+            `;
             container.appendChild(row);
         });
     }
 
-    // 画面の表示切り替え（単語帳 ⇄ テスト）
-    function showSection(sectionId) {
-        document.getElementById('list-section').classList.add('hidden');
-        document.getElementById('test-section').classList.add('hidden');
-        document.getElementById(sectionId).classList.remove('hidden');
-    }
-
-    // 抜き打ちテストの開始処理（ランダムに10個抽出）
+    // 4. テストの開始処理（10個ランダム抽出）
     function startTest() {
-        if (wordGroup1.length < 10) {
-            alert("テストを始めるには単語が最低10個必要です！データを入れてみてください。");
-            return;
-        }
+        const words = currentGroupData.words;
         
-        // 配列をランダムにシャッフルして先頭の10個を抜き出す
-        const shuffled = [...wordGroup1].sort(() => 0.5 - Math.random());
-        testWords = shuffled.slice(0, 10);
+        // 10問未満の場合は、あるだけの単語でテストをするか、警告を出す
+        if (words.length < 10) {
+            // テスト用に全単語を使用
+            testWords = [...words].sort(() => 0.5 - Math.random());
+        } else {
+            // 10個ランダム抽出
+            const shuffled = [...words].sort(() => 0.5 - Math.random());
+            testWords = shuffled.slice(0, 10);
+        }
         
         currentQuestionIndex = 0;
         isShowingAnswer = false;
-        
-        showSection('test-section');
         showQuestion();
     }
 
-    // 問題を表示する
+    // 5. テスト問題表示
     function showQuestion() {
         const currentWord = testWords[currentQuestionIndex];
-        document.getElementById('test-counter').innerText = `第 ${currentQuestionIndex + 1} 問 / 10問中`;
+        const totalQuestions = testWords.length;
+        
+        document.getElementById('test-counter').innerText = `第 ${currentQuestionIndex + 1} 問 / ${totalQuestions}問中`;
         document.getElementById('test-english').innerText = currentWord.en;
-        document.getElementById('test-japanese').innerText = ""; // 答えは最初隠す
+        document.getElementById('test-japanese').innerText = ""; 
         document.getElementById('action-btn').innerText = "答えを見る";
         isShowingAnswer = false;
     }
 
-    // テスト画面のボタンが押された時の処理（答えを見る ⇄ 次へ）
+    // 6. テスト画面のボタンアクション
     function handleTestAction() {
         const currentWord = testWords[currentQuestionIndex];
+        const totalQuestions = testWords.length;
         
         if (!isShowingAnswer) {
-            // 答えを表示
             document.getElementById('test-japanese').innerText = currentWord.ja;
-            document.getElementById('action-btn').innerText = (currentQuestionIndex === 9) ? "結果を見る" : "次へ進む";
+            document.getElementById('action-btn').innerText = (currentQuestionIndex === totalQuestions - 1) ? "結果を見る" : "次へ進む";
             isShowingAnswer = true;
         } else {
-            // 次の問題へ進む、または終了
-            if (currentQuestionIndex < 9) {
+            if (currentQuestionIndex < totalQuestions - 1) {
                 currentQuestionIndex++;
                 showQuestion();
             } else {
                 alert("テスト終了！お疲れ様でした！単語帳画面に戻ります。");
-                showSection('list-section');
+                switchToMode('list');
             }
         }
     }
 
-    // アプリの初期化を実行
-    initApp();
+    // グループ一覧に戻る処理
+    function backToGroups() {
+        document.getElementById('app-title').innerText = "📝 My単語帳";
+        document.getElementById('content-section').classList.add('hidden');
+        document.getElementById('group-section').classList.remove('hidden');
+    }
 </script>
 
 </body>
