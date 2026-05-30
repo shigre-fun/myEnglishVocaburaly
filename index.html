@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>自分専用・英単語暗記アプリ</title>
+    <style>
+        /* 全体のデザイン調整 */
+        body {
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f7fa;
+            color: #333;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        h1 { text-align: center; color: #4a5568; margin-bottom: 25px; }
+        .nav-buttons { display: flex; gap: 10px; margin-bottom: 20px; }
+        .btn {
+            flex: 1; padding: 12px; border: none; border-radius: 8px;
+            font-size: 16px; font-weight: bold; cursor: pointer;
+            transition: 0.2s;
+        }
+        .btn-blue { background-color: #3182ce; color: white; }
+        .btn-gray { background-color: #e2e8f0; color: #4a5568; }
+        .btn-red { background-color: #e53e3e; color: white; }
+        .btn:hover { opacity: 0.9; }
+
+        /* 【新機能】Rankアコーディオンのスタイル */
+        .rank-container { margin-bottom: 15px; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; }
+        .rank-header {
+            background-color: #edf2f7; padding: 15px; font-size: 18px;
+            font-weight: bold; color: #2d3748; cursor: pointer;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .rank-content { display: none; padding: 10px; background-color: #fff; flex-direction: column; gap: 8px; }
+        .rank-content.open { display: flex; }
+        
+        /* グループボタンと総復習ボタン */
+        .group-btn {
+            background-color: white; border: 1px solid #cbd5e0; padding: 12px;
+            border-radius: 6px; font-size: 15px; text-align: left; cursor: pointer; transition: 0.2s;
+        }
+        .group-btn:hover { border-color: #3182ce; background-color: #f7fafc; }
+        .review-btn {
+            background-color: #fff5f5; border: 1px solid #feb2b2; color: #c53030;
+            padding: 12px; border-radius: 6px; font-size: 15px; font-weight: bold; text-align: center; cursor: pointer;
+        }
+        .review-btn:hover { background-color: #fff5f5; border-color: #e53e3e; }
+
+        /* 単語帳画面のスタイル */
+        .word-list { max-height: 500px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 8px; margin-bottom: 20px; }
+        .word-row { display: flex; align-items: center; padding: 15px 20px; border-bottom: 1px solid #edf2f7; }
+        .word-row:last-child { border-bottom: none; }
+        .word-no { width: 20%; color: #a0aec0; font-size: 14px; font-family: monospace; }
+        .english { width: 40%; font-weight: bold; color: #2b6cb0; }
+        .japanese { width: 40%; color: #4a5568; text-align: right; }
+
+        /* テスト画面のスタイル */
+        .hidden { display: none !important; }
+        .test-box { text-align: center; padding: 30px 10px; }
+        .test-word { font-size: 32px; font-weight: bold; color: #2b6cb0; margin-bottom: 10px; }
+        .test-counter { color: #a0aec0; font-size: 14px; margin-bottom: 20px; }
+        .answer-box { font-size: 24px; color: #e53e3e; font-weight: bold; min-height: 40px; margin-bottom: 30px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1 id="app-title">📝 My単語帳</h1>
+    
+    <div id="group-section">
+        <div class="rank-container">
+            <div class="rank-header" onclick="toggleRank('rank1-content')">🥇 Rank 1 <span>▼</span></div>
+            <div id="rank1-content" class="rank-content">
+                <button class="group-btn" onclick="selectGroup('r1_g1', 'No.0001 ~ 0050')">➔ No.0001 ~ 0050</button>
+                <button class="group-btn" onclick="selectGroup('r1_g2', 'No.0051 ~ 0100')">➔ No.0051 ~ 0100</button>
+                <button class="review-btn" onclick="selectRankReview(1, 'Rank 1 総復習')">🔥 Rank 1 総復習テスト</button>
+            </div>
+        </div>
+
+        <div class="rank-container">
+            <div class="rank-header" onclick="toggleRank('rank2-content')">🥈 Rank 2 <span>▼</span></div>
+            <div id="rank2-content" class="rank-content">
+                <button class="group-btn" onclick="selectGroup('r2_g1', 'No.1001 ~ 1050')">➔ No.1001 ~ 1050</button>
+                <button class="review-btn" onclick="selectRankReview(2, 'Rank 2 総復習')">🔥 Rank 2 総復習テスト</button>
+            </div>
+        </div>
+        
+        </div>
+
+    <div id="content-section" class="hidden">
+        <div class="nav-buttons">
+            <button id="nav-list-btn" class="btn btn-blue" onclick="switchToMode('list')">単語帳を見る</button>
+            <button id="nav-test-btn" class="btn btn-gray" onclick="switchToMode('test')">テストに挑戦</button>
+        </div>
+
+        <div id="list-section">
+            <div class="word-list" id="word-list-container"></div>
+            <button class="btn btn-gray" style="width: 100%;" onclick="backToGroups()">グループ一覧に戻る</button>
+        </div>
+
+        <div id="test-section" class="hidden">
+            <div class="test-box">
+                <div id="test-counter" class="test-counter">第 1 問 / 10問中</div>
+                <div id="test-english" class="test-word">apple</div>
+                <div id="test-japanese" class="answer-box"></div>
+                
+                <button id="action-btn" class="btn btn-blue" style="width: 80%; margin-bottom: 10px;" onclick="handleTestAction()">答えを見る</button>
+                <button class="btn btn-gray" style="width: 80%;" onclick="backToGroups()">テストを終了して戻る</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // 💡 単語データ（Rankとグループを管理）
+    const allData = {
+        // --- Rank 1 のデータ ---
+        rank1: {
+            r1_g1: { startNo: 1, words: [{ en: "apple", ja: "りんご" }, { en: "book", ja: "本" }] }, // サンプル
+            r1_g2: { startNo: 51, words: [{ en: "mountain", ja: "山" }, { en: "river", ja: "川" }] }
+        },
+        // --- Rank 2 のデータ ---
+        rank2: {
+            r2_g1: { startNo: 1001, words: [{ en: "profound", ja: "深い" }, { en: "abstract", ja: "抽象的な" }] }
+        }
+    };
+
+    let currentSourceWords = []; // 現在の学習/テスト対象の単語プール
+    let currentStartNo = 1;
+    let isReviewMode = false; // 「総復習」か「通常」かを判定
+    let maxTestQuestions = 10; // テストの問題数（通常は10、総復習は50など）
+
+    // テスト進行用
+    let testWords = [];
+    let currentQuestionIndex = 0;
+    let isShowingAnswer = false;
+
+    // 1. アコーディオンの開閉処理
+    function toggleRank(id) {
+        const content = document.getElementById(id);
+        content.classList.toggle('open');
+    }
+
+    // 2. 通常の50個グループを選択したとき
+    function selectGroup(groupId, groupTitle) {
+        isReviewMode = false;
+        maxTestQuestions = 10; // 通常グループは10問テスト
+
+        // 対象のグループデータを特定する（Rank1とRank2から検索）
+        let targetGroup = allData.rank1[groupId] || allData.rank2[groupId];
+        
+        currentSourceWords = targetGroup.words;
+        currentStartNo = targetGroup.startNo;
+
+        document.getElementById('app-title').innerText = `📝 ${groupTitle}`;
+        document.getElementById('group-section').classList.add('hidden');
+        document.getElementById('content-section').classList.remove('hidden');
+        
+        switchToMode('list');
+    }
+
+    // 3. Rank総復習テストを選択したとき
+    function selectRankReview(rankNum, title) {
+        isReviewMode = true;
+        maxTestQuestions = 50; // 総復習は50問テスト（単語数が足りなければ自動で全数になります）
+
+        // 選択されたRank内のすべての単語を1つの配列にまとめる
+        const rankKey = `rank${rankNum}`;
+        currentSourceWords = [];
+        
+        for (let groupKey in allData[rankKey]) {
+            currentSourceWords = currentSourceWords.concat(allData[rankKey][groupKey].words);
+        }
+
+        if (currentSourceWords.length === 0) {
+            alert("このRankにはまだ単語が登録されていません。");
+            return;
+        }
+
+        document.getElementById('app-title').innerText = `🔥 ${title}`;
+        document.getElementById('group-section').classList.add('hidden');
+        document.getElementById('content-section').classList.remove('hidden');
+        
+        // 総復習は単語帳をスキップして直接テストモードへ
+        switchToMode('test');
+    }
+
+    // 4. モード切り替え（単語帳 ⇄ テスト）
+    function switchToMode(mode) {
+        const listBtn = document.getElementById('nav-list-btn');
+        const testBtn = document.getElementById('nav-test-btn');
+
+        if (mode === 'list') {
+            if (isReviewMode) {
+                alert("総復習はテスト専用モードです。");
+                return;
+            }
+            listBtn.className = "btn btn-blue";
+            testBtn.className = "btn btn-gray";
+            document.getElementById('list-section').classList.remove('hidden');
+            document.getElementById('test-section').classList.add('hidden');
+            renderWordList();
+        } else if (mode === 'test') {
+            listBtn.className = "btn btn-gray";
+            testBtn.className = "btn btn-blue";
+            // 総復習モードなら「単語帳を見る」ボタンを押せなくする
+            if (isReviewMode) listBtn.className = "btn btn-gray hidden";
+            
+            document.getElementById('list-section').classList.add('hidden');
+            document.getElementById('test-section').classList.remove('hidden');
+            startTest();
+        }
+    }
+
+    // 5. 単語帳の生成
+    function renderWordList() {
+        const container = document.getElementById('word-list-container');
+        container.innerHTML = '';
+        
+        currentSourceWords.forEach((word, index) => {
+            const currentNo = String(currentStartNo + index).padStart(4, '0');
+            const row = document.createElement('div');
+            row.className = 'word-row';
+            row.innerHTML = `
+                <span class="word-no">No.${currentNo}</span>
+                <span class="english">${word.en}</span>
+                <span class="japanese">${word.ja}</span>
+            `;
+            container.appendChild(row);
+        });
+    }
+
+    // 6. テストの開始（指定された問題数をランダム抽出）
+    function startTest() {
+        const shuffled = [...currentSourceWords].sort(() => 0.5 - Math.random());
+        // 設定された上限（10問か50問）か、存在する単語数の少ない方を採用
+        const qCount = Math.min(maxTestQuestions, shuffled.length);
+        testWords = shuffled.slice(0, qCount);
+        
+        currentQuestionIndex = 0;
+        isShowingAnswer = false;
+        showQuestion();
+    }
+
+    // 7. 問題表示
+    function showQuestion() {
+        const currentWord = testWords[currentQuestionIndex];
+        document.getElementById('test-counter').innerText = `第 ${currentQuestionIndex + 1} 問 / ${testWords.length}問中`;
+        document.getElementById('test-english').innerText = currentWord.en;
+        document.getElementById('test-japanese').innerText = ""; 
+        document.getElementById('action-btn').innerText = "答えを見る";
+        isShowingAnswer = false;
+    }
+
+    // 8. テストボタン処理
+    function handleTestAction() {
+        const currentWord = testWords[currentQuestionIndex];
+        
+        if (!isShowingAnswer) {
+            document.getElementById('test-japanese').innerText = currentWord.ja;
+            document.getElementById('action-btn').innerText = (currentQuestionIndex === testWords.length - 1) ? "結果を見る" : "次へ進む";
+            isShowingAnswer = true;
+        } else {
+            if (currentQuestionIndex < testWords.length - 1) {
+                currentQuestionIndex++;
+                showQuestion();
+            } else {
+                alert("テスト終了！お疲れ様でした！");
+                backToGroups();
+            }
+        }
+    }
+
+    // 初期画面に戻る
+    function backToGroups() {
+        document.getElementById('app-title').innerText = "📝 My単語帳";
+        document.getElementById('content-section').classList.add('hidden');
+        document.getElementById('group-section').classList.remove('hidden');
+        // ナビゲーションボタンを元に戻す
+        document.getElementById('nav-list-btn').classList.remove('hidden');
+    }
+</script>
+
+</body>
+</html>
