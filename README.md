@@ -1,0 +1,2 @@
+# my-EnglishVocaburaly
+英単語暗記のための自分専用アプリケーション
